@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="static/login.css">
+</head>
+    <body>
+       
+
+        {% block content %}
+
+        <div class="form-wrapper">
+          <!-- "action ="" redirects back to this log in page if the user has yet logged in and tried to access the home page -->
+        <form method="POST" action = "{{url_for('home')}}">
+          <!-- <form method="POST"> -->
+            <div class = "container">
+              <div class = "photodiv">
+              <img src="/static/login.png">
+              </div>
+              <input type="text" id="username" name="username" class="form" placeholder="Username" required>
+              <!-- {{logform.username(placeholder = "Username", class = "form")}} -->
+              <!-- {{logform.password(placeholder = "Password", class = "form")}} -->
+              <input type="password" id="password" name="password" class="form" placeholder="Password" required>
+                <input type="submit" class="button" value="login"/>
+      
+            </div>
+            <a href="{{url_for('index')}}"><span>←</span></a>
+             </form>
+         </div>
+
+         <!-- FLASH THE MESSAGES: -->
+         {% with messages = get_flashed_messages() %}
+   {% if messages %}
+     <ul class="flashes">
+        {% for message in messages %}
+         <div class="message_flash">{{ message }}</div>
+        {% endfor %}
+    </ul>
+  {% endif %}
+ {% endwith %}
+{% endblock %}
+
+    </body>
+</html>

@@ -1,0 +1,102 @@
+body {
+    display: flex;
+    overflow: hidden;
+    font-family: monospace;
+  }
+  
+  .container{
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  
+  .photodiv{
+    text-align: center;
+  }
+  
+  .form {
+    background: transparent;
+    border-color: black;
+    color: black;
+    display: block;
+    margin: 1rem;
+    padding: .5rem;
+    transition: 250ms 
+  }
+  
+  .form:focus {
+    background: white;
+    color: black;
+    transition: 250ms 
+  }
+  
+  .button {
+    /* border: 1px solid black; */
+    border-color: black;
+    font-family: sans-serif;
+    background: transparent;
+    color: black;
+    display: block;
+    margin: 1rem auto;
+    min-width: 1px;
+    padding: 0.25rem;
+    transition: 250ms  ease-in;
+  }
+  
+  .button:hover, .button:focus {
+    color: white;
+    background-color: black;
+    transition: 250ms  ease-in;
+  }
+  
+  a{
+      display: block;
+      width: 70px; 
+      height: 40px; 
+      line-height: 40px;
+      font-size: 20px;
+      font-family: sans-serif;
+      text-decoration: none;
+      color: black;
+      border: 2px solid black;
+      letter-spacing: 2px;
+      text-align: center;
+      transition: all .35s;
+    }
+    
+    a span{
+      position: relative;
+      z-index: 2;
+    }
+    
+    a:after{
+      position: absolute;
+      content: "";
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 100%;
+      background: black;
+      transition: all .35s;
+    }
+    
+    a:hover{
+      color: #fff;
+    }
+    
+  a:hover:after{
+      width: 100%;
+  }
+  
+  a:active{
+      color: #fff;
+      background-color: grey;
+  }
+    
+  .indexlink{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+

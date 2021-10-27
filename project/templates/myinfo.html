@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="static/myinfo.css">
+</head>
+    <body>
+        {% block content %}
+
+        <div class="form-wrapper">
+          <!-- "action ="" redirects back to this log in page if the user has yet logged in and tried to access the home page -->
+        
+            <div class = "container">
+              <div class = "photodiv">
+              <img src="/static/login.png">
+              </div>
+
+			  <h3 class = "tableheader">Your Information</h3>
+			  <table style="width:75%">
+
+				<tr>
+				<th>UserID:</th>
+				<td>{{userID}}</td>
+				</tr>
+
+				<tr>
+				<th>Username:</th>
+				<td>{{username}}</td>
+				</tr>
+
+				<tr>
+				<th>Amount of Tokens:</th>
+				<td>${{userTOKEN}}</td>
+				</tr>
+
+				<tr>
+				<th>Email:</th>
+				<td>{{userEMAIL}}</td>
+				</tr>
+
+				<tr>
+					<th>Address:</th>
+					<td>{{userADDRESS}}</td>
+					</tr>
+
+				</table>
+
+             
+
+            </div>
+            <a href="{{url_for('login')}}"><span>←</span></a>
+           
+         </div>
+
+         <!-- FLASH THE MESSAGES: -->
+         {% with messages = get_flashed_messages() %}
+   {% if messages %}
+     <ul class="flashes">
+        {% for message in messages %}
+         <div class="message_flash">{{ message }}</div>
+        {% endfor %}
+    </ul>
+  {% endif %}
+ {% endwith %}
+{% endblock %}
+
+    </body>
+</html>
