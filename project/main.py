@@ -65,7 +65,6 @@ def register():
                         #Hash the passwords
                         password = generate_password_hash(password)
                         confirmpassword = password
-
                         cur.execute("INSERT into UserInfo (name, username, email, address, password, confirmpassword, playertokens) values (?,?,?,?,?,?,?)", (name, username, email, address,password, confirmpassword, playertokens))
                         con.commit()
                     else:
@@ -335,16 +334,86 @@ def chess():
 # ------------CREATE OR JOIN BREAKOUT ROOM HERE------------ #
 
 
+#------ BLACK JACK HERE------- #
+
+class Player():
+    def __init__(self, name, score, cards):
+        self.name = name
+        self.score = score
+        self.cards = cards
+    
+    def distribute_cards(self):
+        while len(self.cards) != 2:
+            #One bug that needs to be fixed: what if user gets two 11s?
+            self.cards.append(random.randint(1, 11))
+            if (len(self.cards)) == 2:
+                return self.cards
+
+    def hit(self, newcard):
+        self.cards.append(newcard)
+
+    def reset(self):
+        self.cards = []
+
 # ------------SESSION SERVER HERE------------ #
+UserInRoomsDict = {} #Dictionary where the key is the room and the value is the current users in that room
+temparrayroom = []
+
 @socketio.on('join', namespace='/chess')
 def join(message):
     room = session.get('room')
     join_room(room)
     emit('status', {'msg':  session.get('username') + ' has entered the room.' + " Bet amount: $" + session.get('tokens')}, room=room)
+    #Whoever enters the room gets stored into the temporary array.
+    temparrayroom.append(str(session.get('username')))
+
+    if(len(temparrayroom) == 2):
+        roomvalue = str(room)
+        usersintheroom = []
+
+        for i in temparrayroom:
+            usersintheroom.append(i)
+        # usersintheroom = temparrayroom
+        tempdic = {roomvalue: usersintheroom}
+        print(tempdic)
+        UserInRoomsDict.update(tempdic)
+        print(UserInRoomsDict)
+        # print(temparrayroom)
+        temparrayroom.clear()
+        
+        print("done!")
+        global playerA
+        global playerB
+        global playerAcards
+        global playerBcards
+        #NEED TO FIX THIS SHHIT
+        RoomUsersArray = []
+
+        RoomUsersArray = UserInRoomsDict[roomvalue]
+        # print(UserInRoomsDict.get(str(room)))
+        # print(RoomUsersArray)
+
+        playerAcards = []
+        playerBcards = []
+        playerA = Player(RoomUsersArray[0], 0, playerAcards)
+        playerB = Player(RoomUsersArray[1], 0, playerBcards)
+        playerA.distribute_cards()
+        playerB.distribute_cards()
+        playerAcardsOut = ' '.join(str(e) for e in playerAcards)
+        print(playerAcards)
+        playerBcardsOut = ' '.join(str(e) for e in playerBcards)
+        emit('startGame', {'msg': "\nGame Begins!\n"}, room = room)
+
+        emit('startGame', {'msg': RoomUsersArray[0] + " has cards: " + playerAcardsOut + " count: " + str(sum(playerA.cards)) + "\n" +
+        RoomUsersArray[1] + " has cards: " + playerBcardsOut + " count: " + str(sum(playerB.cards)) + "\n"}, room = room)
+    else:
+        emit('startGame', {'msg': "\nWaiting for another player to join...\n"}, room = room)
+
 
 @socketio.on('left', namespace='/chess')
 def left(message):
     room = session.get('room')
+
     username = session.get('username')
     tempusername = username
     #Connect to databse
@@ -368,7 +437,6 @@ def left(message):
         # print("final token count: ", finaltokencount)
         cur.execute(f"UPDATE UserInfo SET playertokens = '{finaltokencount}' WHERE username = '{tempusername}';")
         con.commit()
-   
     else:
         theotheruser = ""
         tempBetExitUser = int(usersBetsTempDictionary[tempusername])
@@ -385,22 +453,65 @@ def left(message):
         print("final token count: ", finaltokencount)
         cur.execute(f"UPDATE UserInfo SET playertokens = '{finaltokencount}' WHERE username = '{theotheruser}';")
         con.commit()
+
+        print(UserInRoomsDict)
+        UserInRoomsDict.pop(str(room))
+        print(UserInRoomsDict)
+        session.clear()
         
     leave_room(room)
     session.clear()
     emit('status', {'msg': str(username) + ' has left the room.'}, room=room)
 
+
 @socketio.on('text', namespace='/chess')
 def text(message):
     room = session.get('room')
+    #prints the name of the user in the chat room who texts
+    print(session.get('username'))
     emit('message', {'msg': str(session.get('username')) + ' : ' + str(message['msg'])}, room=room)
 
 
-# TESTING...
 @socketio.on('hit', namespace='/chess')
 def hit(message):
     room = session.get('room')
-    emit('message', {'msg': str(session.get('username'))}, room = room)
+    playerwhoHits = session.get('username')
+    RoomUsersArray = UserInRoomsDict.get(str(room))
+    print("here")
+    if (len(RoomUsersArray) == 2):
+        if (str(playerwhoHits) == RoomUsersArray[0]):
+            playerA.hit(random.randint(1, 11))
+            playerAcardsOut = ' '.join(str(e) for e in playerAcards)
+            playerBcardsOut = ' '.join(str(e) for e in playerBcards)
+            emit('hitGame', {'msg':RoomUsersArray[0] + " hitted! " + "\ncards: " + playerAcardsOut + "\ncount: " + str(sum(playerA.cards)) + "\n"}, room = room)
+        if (str(playerwhoHits) == RoomUsersArray[1]):
+            playerB.hit(random.randint(1, 11))
+            playerAcardsOut = ' '.join(str(e) for e in playerAcards)
+            playerBcardsOut = ' '.join(str(e) for e in playerBcards)
+            emit('hitGame', {'msg':RoomUsersArray[1] + " hitted! " + "\ncards: " + playerBcardsOut + "\ncount: " + str(sum(playerB.cards)) + "\n"}, room = room)
+    else:
+         emit('hitGame', {'msg': "\nCan't Hit right now! Waiting for another player to join...\n"}, room = room)
+
+
+@socketio.on('stay', namespace='/chess')
+def hit(message):
+    room = session.get('room')
+    playerwhoStays = session.get('username')
+    RoomUsersArray = UserInRoomsDict.get(str(room))
+    if (len(RoomUsersArray) == 2):
+        if (str(playerwhoStays) == RoomUsersArray[0]):
+            playerAcardsOut = ' '.join(str(e) for e in playerAcards)
+            playerBcardsOut = ' '.join(str(e) for e in playerBcards)
+            emit('stayGame', {'msg':RoomUsersArray[0] + " stayed! " + "\ncards: " + playerAcardsOut + "\ncount: " + str(sum(playerA.cards)) + "\n"}, room = room)
+        if (str(playerwhoStays) == RoomUsersArray[1]):
+            playerAcardsOut = ' '.join(str(e) for e in playerAcards)
+            playerBcardsOut = ' '.join(str(e) for e in playerBcards)
+            emit('stayGame', {'msg':RoomUsersArray[1] + " stayed! " + "\ncards: " + playerBcardsOut + "\ncount: " + str(sum(playerB.cards)) + "\n"}, room = room)
+    else:
+         emit('stayGame', {'msg': "\nCan't stay right now! Waiting for another player to join...\n"}, room = room)
+
+
+
 
 # ------------SESSION SERVER HERE------------ #
 
@@ -420,109 +531,90 @@ if __name__ == '__main__':
 #************************************
 
 
+# GAME NEEDS TO BE IN JAVASCRIPT
+
+# # ------------BLACK JACK GAME BEST OUT OF 7 GAMES HERE------------ #
 
 
-# ------------BLACK JACK GAME BEST OUT OF 7 GAMES HERE------------ #
-
-class Player():
-    def __init__(self, name, score, cards):
-        self.name = name
-        self.score = score
-        self.cards = cards
-    
-    def distribute_cards(self):
-        while len(self.cards) != 2:
-            #One bug that needs to be fixed: what if user gets two 11s?
-            self.cards.append(random.randint(1, 11))
-            if (len(self.cards)) == 2:
-                return self.cards
-
-    def hit(self, newcard):
-        self.cards.append(newcard)
-
-    def reset(self):
-        self.cards = []
-
-
-def game(user1, user2):
-    playerAwinloseIndex = 1
-    playerBwinloseIndex = 1
-    print("Welcome to BlackJack Game. Best of 5 count!")
-    totalgames = 0
-    playerAcards = []
-    playerBcards = []
-    playerA = Player(user1, 0, playerAcards)
-    playerB = Player(user2, 0, playerBcards)
+# def game(user1, user2):
+#     playerAwinloseIndex = 1
+#     playerBwinloseIndex = 1
+#     print("Welcome to BlackJack Game. Best of 5 count!")
+#     totalgames = 0
+#     playerAcards = []
+#     playerBcards = []
+#     playerA = Player(user1, 0, playerAcards)
+#     playerB = Player(user2, 0, playerBcards)
                      
-    while totalgames < 7:
-        print("Game #" + str(totalgames + 1) + ". Dealing the cards")
-        playerA.reset()
-        playerB.reset()
-        playerA.distribute_cards()
-        playerB.distribute_cards()
+#     while totalgames < 7:
+#         print("Game #" + str(totalgames + 1) + ". Dealing the cards")
+#         playerA.reset()
+#         playerB.reset()
+#         playerA.distribute_cards()
+#         playerB.distribute_cards()
 
-        print(playerA.name, "has cards: ", playerA.cards)
-        print(playerB.name, "has cards: ", playerB.cards)
+#         print(playerA.name, "has cards: ", playerA.cards)
+#         print(playerB.name, "has cards: ", playerB.cards)
         
         
-        if sum(playerA.cards) == 21 or sum(playerB.cards) == 21:
-            if sum(playerA.cards) == 21:
-                print(playerA.name, "Black Jack!")
-                playerA.score += 1
-            else:
-                print(playerB.name, "Black Jack!")
-                playerB.score += 1
-        else:
-            while sum(playerA.cards) < 22:
-                action = str(input(playerA.name + ", Do you want to stay or hit?  "))
-                if action == "hit":
-                    playerA.hit(random.randint(1, 11))
-                    print(playerA.name + " now have a total of " + str(sum(playerA.cards)) + " from these cards ", playerA.cards)
-                    if sum(playerA.cards) > 21:
-                        print(playerB.name, "wins!")
-                        playerB.score += 1
-                        playerAwinloseIndex = 0
-                        break
-                elif action == "stay":
-                    while (sum(playerB.cards) < 22):
-                        action = str(input(playerB.name + ", Do you want to stay or hit?  "))
-                        if action == "hit":
-                            playerB.hit(random.randint(1, 11))
-                            print(playerB.name + " now have a total of " + str(sum(playerB.cards)) + " from these cards ", playerB.cards)
-                            if sum(playerB.cards) > 21:
-                                print(playerA.name, "wins!")
-                                playerA.score += 1
-                                playerBwinloseIndex = 0
-                                break
-                        elif action == "stay":
-                            break
-                    break
+#         if sum(playerA.cards) == 21 or sum(playerB.cards) == 21:
+#             if sum(playerA.cards) == 21:
+#                 print(playerA.name, "Black Jack!")
+#                 playerA.score += 1
+#             else:
+#                 print(playerB.name, "Black Jack!")
+#                 playerB.score += 1
+#         else:
+#             while sum(playerA.cards) < 22:
+#                 action = str(input(playerA.name + ", Do you want to stay or hit?  "))
+#                 if action == "hit":
+#                     playerA.hit(random.randint(1, 11))
+#                     print(playerA.name + " now have a total of " + str(sum(playerA.cards)) + " from these cards ", playerA.cards)
+#                     if sum(playerA.cards) > 21:
+#                         print(playerB.name, "wins!")
+#                         playerB.score += 1
+#                         playerAwinloseIndex = 0
+#                         break
+#                 elif action == "stay":
+#                     while (sum(playerB.cards) < 22):
+#                         action = str(input(playerB.name + ", Do you want to stay or hit?  "))
+#                         if action == "hit":
+#                             playerB.hit(random.randint(1, 11))
+#                             print(playerB.name + " now have a total of " + str(sum(playerB.cards)) + " from these cards ", playerB.cards)
+#                             if sum(playerB.cards) > 21:
+#                                 print(playerA.name, "wins!")
+#                                 playerA.score += 1
+#                                 playerBwinloseIndex = 0
+#                                 break
+#                         elif action == "stay":
+#                             break
+#                     break
                         
-        if sum(playerA.cards) > sum(playerB.cards) and playerAwinloseIndex == 1:
-            print(playerA.name, "wins!")
-            playerA.score += 1
+#         if sum(playerA.cards) > sum(playerB.cards) and playerAwinloseIndex == 1:
+#             print(playerA.name, "wins!")
+#             playerA.score += 1
         
-        if sum(playerA.cards) < sum(playerB.cards) and playerBwinloseIndex == 1:
-            print(playerB.name, "wins!")
-            playerB.score += 1
+#         if sum(playerA.cards) < sum(playerB.cards) and playerBwinloseIndex == 1:
+#             print(playerB.name, "wins!")
+#             playerB.score += 1
         
-        if sum(playerA.cards) == sum(playerB.cards):
-            print(playerA.name, playerB.name, "ties!")
+#         if sum(playerA.cards) == sum(playerB.cards):
+#             print(playerA.name, playerB.name, "ties!")
 
-        print("Current Best of 5: ")
-        print(str(playerA.name) + ": " + str(playerA.score) + " games" + " - V.S. - " + playerB.name + ": " + str(playerB.score) + " games")
-        totalgames += 1
-    if (playerA.score) > (playerB.score):
-        print(playerA.name, " is the ultimate winner!")
-        #in the user data base, player B's money goes to player A
-    elif (playerA.score) < (playerB.score):
-        print(playerB.name, " is the ultimate winner!")
-        #in the user data base, player A's money goes to player B
-    else:
-        print(playerA.name, playerB.name, "ties!")
-        #do nothing about the data base.
+#         print("Current Best of 5: ")
+#         print(str(playerA.name) + ": " + str(playerA.score) + " games" + " - V.S. - " + playerB.name + ": " + str(playerB.score) + " games")
+#         totalgames += 1
+#     if (playerA.score) > (playerB.score):
+#         print(playerA.name, " is the ultimate winner!")
+#         #in the user data base, player B's money goes to player A
+#     elif (playerA.score) < (playerB.score):
+#         print(playerB.name, " is the ultimate winner!")
+#         #in the user data base, player A's money goes to player B
+#     else:
+#         print(playerA.name, playerB.name, "ties!")
+#         #do nothing about the data base.
 
-#Who ever joins the room will 
-game(playersBlackJackArray[0], playersBlackJackArray[1])
+# #Who ever joins the room will 
+# game(playersBlackJackArray[0], playersBlackJackArray[1])
 
-# ------------BLACK JACK GAME BEST OUT OF 5 HERE------------ #
+# # ------------BLACK JACK GAME BEST OUT OF 5 HERE------------ #
