@@ -337,10 +337,11 @@ def chess():
 #------ BLACK JACK HERE------- #
 
 class Player():
-    def __init__(self, name, score, cards):
+    def __init__(self, name, score, cards, stay):
         self.name = name
         self.score = score
         self.cards = cards
+        self.stay = stay
     
     def distribute_cards(self):
         while len(self.cards) != 2:
@@ -351,13 +352,23 @@ class Player():
 
     def hit(self, newcard):
         self.cards.append(newcard)
+    
+    def stay(self):
+        self.stay = 1
 
     def reset(self):
         self.cards = []
+        self.stay = 0
+        # self.score = 0
+    
+    def resetScore(self):
+        self.score = 0
 
 # ------------SESSION SERVER HERE------------ #
 UserInRoomsDict = {} #Dictionary where the key is the room and the value is the current users in that room
 temparrayroom = []
+UserScoreTrackerDict = {}
+UserScore = 0
 
 @socketio.on('join', namespace='/chess')
 def join(message):
@@ -366,11 +377,10 @@ def join(message):
     emit('status', {'msg':  session.get('username') + ' has entered the room.' + " Bet amount: $" + session.get('tokens')}, room=room)
     #Whoever enters the room gets stored into the temporary array.
     temparrayroom.append(str(session.get('username')))
-
+    print(temparrayroom)
+    roomvalue = str(room)   
     if(len(temparrayroom) == 2):
-        roomvalue = str(room)
         usersintheroom = []
-
         for i in temparrayroom:
             usersintheroom.append(i)
         # usersintheroom = temparrayroom
@@ -388,32 +398,38 @@ def join(message):
         global playerBcards
         #NEED TO FIX THIS SHHIT
         RoomUsersArray = []
-
         RoomUsersArray = UserInRoomsDict[roomvalue]
         # print(UserInRoomsDict.get(str(room)))
         # print(RoomUsersArray)
+        #Add to Score Dictionary the scores of each user for tracking purposes:
+        tempdict2 = {RoomUsersArray[0]: UserScore}
+        tempdict3 = {RoomUsersArray[1]: UserScore}
+        UserScoreTrackerDict.update(tempdict2)
+        UserScoreTrackerDict.update(tempdict3)
 
         playerAcards = []
         playerBcards = []
-        playerA = Player(RoomUsersArray[0], 0, playerAcards)
-        playerB = Player(RoomUsersArray[1], 0, playerBcards)
+        playerA = Player(RoomUsersArray[0], 0, playerAcards, 0)
+        playerB = Player(RoomUsersArray[1], 0, playerBcards, 0)
+        
         playerA.distribute_cards()
         playerB.distribute_cards()
-        playerAcardsOut = ' '.join(str(e) for e in playerAcards)
+        playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
         print(playerAcards)
-        playerBcardsOut = ' '.join(str(e) for e in playerBcards)
-        emit('startGame', {'msg': "\nGame Begins!\n"}, room = room)
-
-        emit('startGame', {'msg': RoomUsersArray[0] + " has cards: " + playerAcardsOut + " count: " + str(sum(playerA.cards)) + "\n" +
-        RoomUsersArray[1] + " has cards: " + playerBcardsOut + " count: " + str(sum(playerB.cards)) + "\n"}, room = room)
+        playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+        emit('startGame', {'msg': "\n--------------Game Begins!--------------\n"}, room = room)
+        emit('startGame', {'msg': RoomUsersArray[0] + " has cards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n" +
+        RoomUsersArray[1] + " has cards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
     else:
+        tempdic = {roomvalue: temparrayroom}
+        print(tempdic)
+        UserInRoomsDict.update(tempdic)
         emit('startGame', {'msg': "\nWaiting for another player to join...\n"}, room = room)
 
 
 @socketio.on('left', namespace='/chess')
 def left(message):
     room = session.get('room')
-
     username = session.get('username')
     tempusername = username
     #Connect to databse
@@ -453,7 +469,6 @@ def left(message):
         print("final token count: ", finaltokencount)
         cur.execute(f"UPDATE UserInfo SET playertokens = '{finaltokencount}' WHERE username = '{theotheruser}';")
         con.commit()
-
         print(UserInRoomsDict)
         UserInRoomsDict.pop(str(room))
         print(UserInRoomsDict)
@@ -471,42 +486,178 @@ def text(message):
     print(session.get('username'))
     emit('message', {'msg': str(session.get('username')) + ' : ' + str(message['msg'])}, room=room)
 
-
 @socketio.on('hit', namespace='/chess')
 def hit(message):
     room = session.get('room')
     playerwhoHits = session.get('username')
     RoomUsersArray = UserInRoomsDict.get(str(room))
+    print(RoomUsersArray)
     print("here")
     if (len(RoomUsersArray) == 2):
         if (str(playerwhoHits) == RoomUsersArray[0]):
             playerA.hit(random.randint(1, 11))
-            playerAcardsOut = ' '.join(str(e) for e in playerAcards)
-            playerBcardsOut = ' '.join(str(e) for e in playerBcards)
-            emit('hitGame', {'msg':RoomUsersArray[0] + " hitted! " + "\ncards: " + playerAcardsOut + "\ncount: " + str(sum(playerA.cards)) + "\n"}, room = room)
+            playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+            playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+            emit('hitGame', {'msg':RoomUsersArray[0] + " hitted! " + "\ncards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n"}, room = room)
         if (str(playerwhoHits) == RoomUsersArray[1]):
             playerB.hit(random.randint(1, 11))
-            playerAcardsOut = ' '.join(str(e) for e in playerAcards)
-            playerBcardsOut = ' '.join(str(e) for e in playerBcards)
-            emit('hitGame', {'msg':RoomUsersArray[1] + " hitted! " + "\ncards: " + playerBcardsOut + "\ncount: " + str(sum(playerB.cards)) + "\n"}, room = room)
+            playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+            playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+            emit('hitGame', {'msg':RoomUsersArray[1] + " hitted! " + "\ncards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
+        
+        #Check win or lose from hitting....
+        if (sum(playerA.cards) > 21):
+            emit('hitGame', {'msg':RoomUsersArray[1] + " wins! "}, room = room)
+            #playerB.score += 1
+            
+            #Update user's score based on their usernames and output it.
+            playerAscore = UserScoreTrackerDict.get(RoomUsersArray[0])
+            playerBscore = UserScoreTrackerDict.get(RoomUsersArray[1])
+            playerBscore += 1
+            tempdic = {RoomUsersArray[1]: playerBscore}
+            UserScoreTrackerDict.update(tempdic)
+            emit('stayGame', {'msg':"Score: " + RoomUsersArray[0] + " <" + str(playerAscore) + "> " + " - v.s. - " +  RoomUsersArray[1] + " <" + str(playerBscore)  + "> " }, room = room)
+            
+            emit('hitGame', {'msg':"\n--------------Another Game!--------------\n"}, room = room)
+            # playerAcards = []
+            # playerBcards = []
+            playerAcards.clear()
+            playerBcards.clear()
+            playerA.reset()
+            playerB.reset()
+            playerA.distribute_cards()
+            playerB.distribute_cards()
+            # playerAcards = playerA.cards
+            # playerBcards = playerB.cards
+            playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+            playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+            emit('startGame', {'msg': RoomUsersArray[0] + " has cards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n" +
+        RoomUsersArray[1] + " has cards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
+
+        if (sum(playerB.cards) > 21):
+            emit('hitGame', {'msg':RoomUsersArray[0] + " wins! "}, room = room)
+            #Update user's score based on their usernames and output it.
+            playerAscore = UserScoreTrackerDict.get(RoomUsersArray[0])
+            playerBscore = UserScoreTrackerDict.get(RoomUsersArray[1])
+            playerAscore += 1
+            tempdic = {RoomUsersArray[0]: playerAscore}
+            UserScoreTrackerDict.update(tempdic)
+            emit('stayGame', {'msg':"Score: " + RoomUsersArray[0] + " <" + str(playerAscore) + "> " + " - v.s. - " +  RoomUsersArray[1] + " <" + str(playerBscore)  + "> " }, room = room)
+            
+            emit('hitGame', {'msg':"\n--------------Another Game!--------------\n"}, room = room)
+            # playerAcards = []
+            # playerBcards = []
+            playerAcards.clear()
+            playerBcards.clear()
+            playerA.reset()
+            playerB.reset()
+            playerA.distribute_cards()
+            playerB.distribute_cards()
+            # playerAcards = playerA.cards
+            # playerBcards = playerB.cards
+            playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+            playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+            emit('startGame', {'msg': RoomUsersArray[0] + " has cards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n" +
+        RoomUsersArray[1] + " has cards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
     else:
          emit('hitGame', {'msg': "\nCan't Hit right now! Waiting for another player to join...\n"}, room = room)
 
 
 @socketio.on('stay', namespace='/chess')
-def hit(message):
+def stay(message):
     room = session.get('room')
     playerwhoStays = session.get('username')
     RoomUsersArray = UserInRoomsDict.get(str(room))
     if (len(RoomUsersArray) == 2):
         if (str(playerwhoStays) == RoomUsersArray[0]):
-            playerAcardsOut = ' '.join(str(e) for e in playerAcards)
-            playerBcardsOut = ' '.join(str(e) for e in playerBcards)
-            emit('stayGame', {'msg':RoomUsersArray[0] + " stayed! " + "\ncards: " + playerAcardsOut + "\ncount: " + str(sum(playerA.cards)) + "\n"}, room = room)
+            playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+            playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+            emit('stayGame', {'msg':RoomUsersArray[0] + " stayed! " + "\ncards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n"}, room = room)
+            playerA.stay = 1
         if (str(playerwhoStays) == RoomUsersArray[1]):
-            playerAcardsOut = ' '.join(str(e) for e in playerAcards)
-            playerBcardsOut = ' '.join(str(e) for e in playerBcards)
-            emit('stayGame', {'msg':RoomUsersArray[1] + " stayed! " + "\ncards: " + playerBcardsOut + "\ncount: " + str(sum(playerB.cards)) + "\n"}, room = room)
+            playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+            playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+            emit('stayGame', {'msg':RoomUsersArray[1] + " stayed! " + "\ncards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
+            playerB.stay = 1
+            # if (sum(playerB.cards) > 22):
+            #     emit('stayGame', {'msg':RoomUsersArray[0] + " wins! "}, room = room)
+            # if (playerAStay == 1):
+            #     #See who wins.
+            #     if(sum(playerB.cards) > sum(playerA.cards) and sum(playerB.cards) < 22):
+            #          emit('stayGame', {'msg':RoomUsersArray[1] + " wins! "}, room = room)
+        
+        print("here before checking...")
+        print("playerAcards sum - ", sum(playerA.cards))
+       
+        if (playerA.stay == 1 and playerB.stay == 1 ):
+            #Check who wins.
+            if(sum(playerA.cards) > sum(playerB.cards) and sum(playerA.cards) < 22):
+                emit('stayGame', {'msg':RoomUsersArray[0] + " wins! "}, room = room)
+                #Update user's score based on their usernames and output it.
+                
+                playerAscore = UserScoreTrackerDict.get(RoomUsersArray[0])
+                playerBscore = UserScoreTrackerDict.get(RoomUsersArray[1])
+                playerAscore += 1
+                tempdic = {RoomUsersArray[0]: playerAscore}
+                UserScoreTrackerDict.update(tempdic)
+                emit('stayGame', {'msg':"Score: " + RoomUsersArray[0] + " <" + str(playerAscore) + "> " + " - v.s. - " +  RoomUsersArray[1] + " <" + str(playerBscore)  + "> " }, room = room)
+            
+                emit('hitGame', {'msg':"\n--------------Another Game!--------------\n"}, room = room)
+                playerAcards.clear()
+                playerBcards.clear()
+                playerA.reset()
+                playerB.reset()
+                playerA.distribute_cards()
+                playerB.distribute_cards()
+                # playerAcards = playerA.cards
+                # playerBcards = playerB.cards
+                playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+                playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+                emit('startGame', {'msg': RoomUsersArray[0] + " has cards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n" +
+        RoomUsersArray[1] + " has cards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
+            if(sum(playerA.cards) < sum(playerB.cards) and sum(playerA.cards) < 22):
+                emit('stayGame', {'msg':RoomUsersArray[1] + " wins! "}, room = room)
+                #Update user's score based on their usernames and output it.
+                playerAscore = UserScoreTrackerDict.get(RoomUsersArray[0])
+                playerBscore = UserScoreTrackerDict.get(RoomUsersArray[1])
+                playerBscore += 1
+                tempdic = {RoomUsersArray[1]: playerBscore}
+                UserScoreTrackerDict.update(tempdic)
+                emit('stayGame', {'msg':"Score: " + RoomUsersArray[0] + " <" + str(playerAscore) + "> " + " - v.s. - " +  RoomUsersArray[1] + " <" + str(playerBscore)  + "> " }, room = room)
+                
+                playerAcards.clear()
+                playerBcards.clear()
+                playerA.reset()
+                playerB.reset()
+                playerA.distribute_cards()
+                playerB.distribute_cards()
+                # playerAcards = playerA.cards
+                # playerBcards = playerB.cards
+                playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+                playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+                emit('startGame', {'msg': RoomUsersArray[0] + " has cards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n" +
+        RoomUsersArray[1] + " has cards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
+            if(sum(playerA.cards) == sum(playerB.cards) and sum(playerA.cards) < 22):
+                emit('stayGame', {'msg':RoomUsersArray[1] + " and " + RoomUsersArray[0] + " ties! "}, room = room)
+                #Update user's score based on their usernames and output it.
+                playerAscore = UserScoreTrackerDict.get(RoomUsersArray[0])
+                playerBscore = UserScoreTrackerDict.get(RoomUsersArray[1])
+                emit('stayGame', {'msg':"Score: " + RoomUsersArray[0] + " <" + str(playerAscore) + "> " + " - v.s. - " +  RoomUsersArray[1] + " <" + str(playerBscore)  + "> " }, room = room)
+            
+                emit('hitGame', {'msg':"\n--------------Another Game!--------------\n"}, room = room)
+                playerAcards.clear()
+                playerBcards.clear()
+                playerA.reset()
+                playerB.reset()
+                playerA.distribute_cards()
+                playerB.distribute_cards()
+                # playerAcards = playerA.cards
+                # playerBcards = playerB.cards
+                playerAcardsOut = ' '.join(str(e) for e in playerA.cards)
+                playerBcardsOut = ' '.join(str(e) for e in playerB.cards)
+                emit('startGame', {'msg': RoomUsersArray[0] + " has cards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n" +
+        RoomUsersArray[1] + " has cards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
+
     else:
          emit('stayGame', {'msg': "\nCan't stay right now! Waiting for another player to join...\n"}, room = room)
 
