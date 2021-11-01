@@ -366,30 +366,38 @@ class Player():
 
 # ------------SESSION SERVER HERE------------ #
 UserInRoomsDict = {} #Dictionary where the key is the room and the value is the current users in that room
-temparrayroom = []
+# temparrayroom = []
 UserScoreTrackerDict = {}
 UserScore = 0
+temparrayroom = []
 
 @socketio.on('join', namespace='/chess')
 def join(message):
     room = session.get('room')
+    username = str(session.get('username'))
     join_room(room)
     emit('status', {'msg':  session.get('username') + ' has entered the room.' + " Bet amount: $" + session.get('tokens')}, room=room)
     #Whoever enters the room gets stored into the temporary array.
-    temparrayroom.append(str(session.get('username')))
-    print(temparrayroom)
-    roomvalue = str(room)   
-    if(len(temparrayroom) == 2):
-        usersintheroom = []
-        for i in temparrayroom:
-            usersintheroom.append(i)
-        # usersintheroom = temparrayroom
-        tempdic = {roomvalue: usersintheroom}
-        print(tempdic)
+
+    # print(temparrayroom)
+    roomvalue = str(room)
+    # usersintheroom = []
+    
+    if not (roomvalue in UserInRoomsDict):
+        tempdic = {roomvalue: []}
         UserInRoomsDict.update(tempdic)
-        print(UserInRoomsDict)
+        temparrayroom = UserInRoomsDict.get(roomvalue)
+    
+    temparrayroom = UserInRoomsDict.get(roomvalue)
+    temparrayroom.append(username)
+    tempdica = {roomvalue: temparrayroom}
+    UserInRoomsDict.update(tempdica)
+    print(UserInRoomsDict)
+
+    if(len(temparrayroom) == 2):
+        # temparrayroom.clear()
         # print(temparrayroom)
-        temparrayroom.clear()
+        # temparrayroom.clear()
         
         print("done!")
         global playerA
@@ -421,9 +429,6 @@ def join(message):
         emit('startGame', {'msg': RoomUsersArray[0] + " has cards: [" + playerAcardsOut + "] count: <" + str(sum(playerA.cards)) + ">\n" +
         RoomUsersArray[1] + " has cards: [" + playerBcardsOut + "] count: <" + str(sum(playerB.cards)) + ">\n"}, room = room)
     else:
-        tempdic = {roomvalue: temparrayroom}
-        print(tempdic)
-        UserInRoomsDict.update(tempdic)
         emit('startGame', {'msg': "\nWaiting for another player to join...\n"}, room = room)
 
 
@@ -472,9 +477,12 @@ def left(message):
         print(UserInRoomsDict)
         UserInRoomsDict.pop(str(room))
         print(UserInRoomsDict)
+        UserScoreTrackerDict.pop(str(username))
         session.clear()
         
     leave_room(room)
+    UserInRoomsDict.pop(str(room))
+    print(UserInRoomsDict)
     session.clear()
     emit('status', {'msg': str(username) + ' has left the room.'}, room=room)
 
@@ -625,6 +633,7 @@ def stay(message):
                 UserScoreTrackerDict.update(tempdic)
                 emit('stayGame', {'msg':"Score: " + RoomUsersArray[0] + " <" + str(playerAscore) + "> " + " - v.s. - " +  RoomUsersArray[1] + " <" + str(playerBscore)  + "> " }, room = room)
                 
+                emit('hitGame', {'msg':"\n--------------Another Game!--------------\n"}, room = room)
                 playerAcards.clear()
                 playerBcards.clear()
                 playerA.reset()
