@@ -456,6 +456,7 @@ def left(message):
         curusertoken = curusertoken[0]
         finaltokencount = tempBet + curusertoken
         # print("final token count: ", finaltokencount)
+        UserInRoomsDict.pop(str(room))
         cur.execute(f"UPDATE UserInfo SET playertokens = '{finaltokencount}' WHERE username = '{tempusername}';")
         con.commit()
     else:
@@ -474,15 +475,14 @@ def left(message):
         print("final token count: ", finaltokencount)
         cur.execute(f"UPDATE UserInfo SET playertokens = '{finaltokencount}' WHERE username = '{theotheruser}';")
         con.commit()
-        print(UserInRoomsDict)
-        UserInRoomsDict.pop(str(room))
-        print(UserInRoomsDict)
+        #UserInRoomsDict.pop(str(room))
+        #print(UserInRoomsDict)
         UserScoreTrackerDict.pop(str(username))
         session.clear()
-        
-    leave_room(room)
-    UserInRoomsDict.pop(str(room))
+
+    #UserInRoomsDict.pop(str(room))
     print(UserInRoomsDict)
+    leave_room(room)
     session.clear()
     emit('status', {'msg': str(username) + ' has left the room.'}, room=room)
 
