@@ -9,9 +9,10 @@ body{
     grid-row-gap: 0px; 
     }
 
+    
 .div1 { 
     /* padding-top: 200px; */
-    background-color: rgba(0, 0, 0, 0.185);
+    background-color: rgba(168, 168, 168, 0.185);
     grid-area: 1 / 1 / 6 / 4;
  } 
 .div2 { 
@@ -42,6 +43,26 @@ body {
     color: black;
     transition: 250ms 
   }
+
+
+.button {
+  /* border: 1px solid black; */
+  border-color: black;
+  font-family: sans-serif;
+  background: transparent;
+  color: black;
+  display: block;
+  margin: 1rem auto;
+  min-width: 1px;
+  padding: 0.25rem;
+  transition: 250ms  ease-in;
+}
+
+.button:hover, .button:focus {
+  color: white;
+  background-color: black;
+  transition: 250ms  ease-in;
+}
 
 .leavebutton {
     /* border: 1px solid black; */
@@ -83,6 +104,7 @@ right: 10px;
     background-color: black;
     transition: 250ms  ease-in;
 }
+
 
 .textarea{
     font-family: monospace;
