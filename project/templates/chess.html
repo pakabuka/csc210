@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <link rel="stylesheet" href="static/chess.css">
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+      <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+      <script type="text/javascript" >
+         function leave(){
+              //Check if user wants to really leave the room or not.
+                  if (confirm("Are you sure? If you are with another person in the room already, your bet will be automatically granted to the other person!")){
+                     socket.emit('left', {}, function() {
+                         window.location.href = "{{ url_for('login') }}";
+                         socket.disconnect();
+                 });
+                  } else{
+                      //stay on the same page and do nothing...
+                  }
+               }
+      </script>
+
+   </head>
+   <body>
+      <div class="parent">
+
+<!-- GAME: -->
+         <div class="div1">
+            <button class = "button" type="button" id="hit" class="btn btn-success">Hit</button>
+            <button class = "button" type="button" id="stay" class="btn btn-success">Stay</button>
+         
+            <input type="text" id="playerAnewcard"> <!-- For displaying the new cards that has been hitted -->
+            <input type="text" id="playerBnewcard"> <!-- For displaying the new cards that has been hitted -->
+         </div>
+<!-- GAME: -->
+
+           <!-- CHAT: -->
+         <div class="div2">
+            <div class = "chatdiv">
+               <!-- Communication Channel -->
+               <p>Live Chat</p>
+               <p>Room ID: {{session['room']}}</p>
+               <textarea class = "textarea" style="overflow:auto;resize:none" id="chat" cols="50" rows="30" placeholder="No messages yet. Start one..."></textarea>
+                <input class = "form" type="text" id="text" size = "20" placeholder="Enter your message here.">
+                <button class = "sendbutton" type="button" id="send" class="btn btn-success">Send</button>
+            </div>
+            <button  class = "leavebutton" type = "button" id = "leave" onclick="leave()"><span>Leave this room</span></button>
+         </div>
+         <!-- CHAT: -->
+
+      </div>
+
+      <script src="../static/chess.js" async defer></script>
+   </body>
+   {% with messages = get_flashed_messages(with_categories=true) %}
+   {% for category, message in messages %}
+     <div class="{{ category }}">{{ message }}</div>
+   {% endfor %}
+ {% endwith %}
+</html>
