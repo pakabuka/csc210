@@ -1,0 +1,160 @@
+body{
+  background: url(background.jpg);
+  background-size: cover;
+  display: flex;
+  overflow: hidden;
+  font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  transition: all .35s;
+}
+
+.parent { 
+    display: grid; 
+    grid-template-columns: repeat(5, 1fr); 
+    grid-template-rows: repeat(5, 1fr); 
+    grid-column-gap: 0px;
+    grid-row-gap: 0px; 
+    }
+
+    
+.div1 { 
+    /* padding-top: 200px; */
+    background-color: rgba(168, 168, 168, 0.185);
+    grid-area: 1 / 1 / 6 / 4;
+ } 
+.div2 { 
+    position: relative;
+    /* padding-left: 100px; */
+    /* padding-right: 100px; */
+    background-color: rgba(168, 168, 168, 0.185);
+    padding-top: 50px;
+    grid-area: 1 / 4 / 6 / 6; 
+} 
+
+/* WHERE THE BUTTONS ARE */
+.div3 {   
+
+  position: relative; 
+  /* background-color: rgba(184, 120, 120, 0.185); */
+  grid-area: 1 / 1 / 2 / 4; } 
+
+/* PLAYER 1 CARDS*/
+#div4 {   
+  position: relative; 
+  /* background-color: rgba(120, 155, 184, 0.185); */
+  padding-bottom: 50px;
+  grid-area: 2 / 1 / 5 / 2; } 
+/* PLAYER 2 CARDS */
+#div5 {   
+  padding-top: 50px;
+  position: relative; 
+  /* background-color: rgba(138, 184, 120, 0.185); */
+  grid-area: 2 / 3 / 5 / 4; } 
+
+  .form {
+    background: transparent;
+    border-color: white;
+    color: white;
+    display: block;
+    margin: 1rem;
+    padding: .5rem;
+    transition: 250ms ease-in;
+    font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  }
+
+  .form:focus {
+    background: rgba(255, 255, 255, 0.322);
+    color: white;
+    transition: 250ms ease-in;
+  }
+  
+
+
+  .button {
+    /* border: 1px solid black; */
+    border-color: white;
+    font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    background: transparent;
+    color: white;
+    margin: 1rem auto;
+    min-width: 1px;
+    padding: 0.25rem;
+    transition: 250ms  ease-in;
+  }
+
+  .button:hover, .button:focus {
+    color: black;
+    background-color: white;
+    transition: 250ms  ease-in;
+  }
+
+.leavebutton {
+    /* border: 1px solid black; */
+    border-color: white;
+    font-family: sans-serif;
+    background: transparent;
+    
+    color: white;
+    display: block;
+    margin: 1rem auto;
+    min-width: 1px;
+    padding: 0.25rem;
+    transition: 250ms  ease-in;
+    position: absolute;
+      top: 10px;
+right: 10px;
+  }
+  
+  .leavebutton:hover, .leavebutton:focus {
+    color: black;
+    background-color: white;
+    transition: 250ms  ease-in;
+  }
+
+  .sendbutton {
+    /* border: 1px solid black; */
+    border-color: white;
+    font-family: sans-serif;
+    background: transparent;
+    color: white;
+    display: block;
+    margin: 1rem auto;
+    min-width: 1px;
+    padding: 0.25rem;
+    transition: 250ms  ease-in;
+  }
+  
+.sendbutton:hover, .sendbutton:focus {
+  color: black;
+  background-color: white;
+    transition: 250ms  ease-in;
+}
+
+
+.textarea{
+    font-family: monospace;
+    overflow: scroll;
+    pointer-events: none;
+    border-color: white;
+    color: black;
+    border-radius: 10px;
+}
+
+.chatdiv{
+  display: grid;
+  padding-left: 70px;
+  padding-right: 70px;
+  border: blanchedalmond;
+}
+
+.error {
+  color:white;
+  padding-bottom: 20px;
+  padding-top: 20px;
+  padding-left: 20px;
+  position:absolute;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+p{
+  color: white;
+}
